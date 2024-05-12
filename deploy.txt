@@ -1,0 +1,567 @@
+Exemplo
+O exemplo a seguir é um arquivo mínimo que especifica o ambiente de execução do Java 8 sem arquivos estáticos ou arquivos de recurso:
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <threadsafe>true</threadsafe>
+  <runtime>java8</runtime>
+</appengine-web-app>
+Sintaxe
+Um aplicativo Java do App Engine deve ter um arquivo chamado appengine-web.xml em seu WAR, no diretório WEB-INF/. Ele é um arquivo XML cujo elemento raiz é <appengine-web-app>.
+
+A definição do tipo de documento e as especificações de esquema para appengine-web.xml encontram-se no diretório docs/ do SDK.
+
+Observação: o arquivo appengine-web.xml padrão define o serviço padrão. É preciso especificar parâmetros de configuração adicionais para cada serviço não padrão, que anteriormente eram conhecidos como módulos. Eles são descritos na visão geral do App Engine. Esses parâmetros de configuração também podem ser aplicados ao serviço padrão.
+Elemento	Descrição
+<async-session-persistence>	
+Opcional. É possível reduzir a latência de solicitação configurando o aplicativo para gravar dados da sessão HTTP no armazenamento de dados de forma assíncrona:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <async-session-persistence enabled="true" />
+  <!-- ... -->
+</appengine-web-app>
+Com a persistência de sessão assíncrona ativada, o App Engine enviará uma tarefa à fila de tarefas para gravar dados da sessão no armazenamento de dados antes de gravar os dados no Memcache. Por padrão, a tarefa será enviada à fila "padrão". Se você quiser usar uma outra fila, adicione o atributo "queue-name":
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <async-session-persistence enabled="true" queue-name="myqueue"/>
+  <!-- ... -->
+</appengine-web-app>
+Os dados da sessão são sempre gravados de forma síncrona no Memcache. Se uma solicitação tentar ler os dados da sessão quando o Memcache não estiver disponível (ou se os dados da sessão tiverem sido retirados), ela fará failover para o armazenamento de dados, que talvez ainda não tenha os dados de sessão mais recentes. Isso significa que a persistência da sessão assíncrona pode fazer com que o aplicativo veja os dados de sessão desatualizados. No entanto, para a maioria dos aplicativos, o benefício de latência supera em muito o risco.
+
+<auto-id-policy>	Opcional. Se você estiver configurando identificadores de entidade automaticamente, poderá alterar o método empregado definindo a política de código automática. As opções a seguir são válidas:
+default
+Padrão. Usa códigos automáticos dispersos que são grandes, inteiros e bem distribuídos que são pequenos o suficiente para serem representados por flutuadores de 64 bits.
+legacy
+A opção legada ficará obsoleta em uma versão futura e em algum momento será removida. Para mais informações, consulte a postagem do blog que anuncia essa alteração.
+<automatic-scaling>	
+Opcional. Para uma explicação completa, consulte a seção sobre escalonamento automático.
+
+<basic-scaling>	
+Opcional. Para uma explicação completa, consulte a seção sobre escalonamento básico.
+
+<env-variables>	
+Opcional. O arquivo appengine-web.xml pode definir variáveis de ambiente que são definidas quando o aplicativo está em execução.
+
+
+
+
+<env-variables>
+  <env-var name="DEFAULT_ENCODING" value="UTF-8" />
+</env-variables>
+Para evitar conflitos com o ambiente local, o servidor de desenvolvimento não define variáveis de ambiente com base nesse arquivo, ele exige que o ambiente local tenha essas variáveis já definidas com os valores correspondentes.
+
+
+
+
+export DEFAULT_ENCODING="UTF-8"
+dev_appserver war
+Quando implementado no App Engine, o ambiente é criado com essas variáveis já definidas.
+
+<inbound-services>	
+Opcional. Antes de poder receber e-mail, o aplicativo precisa ser configurado para ativar o serviço. Ative o serviço para um aplicativo Java 8 incluindo uma seção <inbound-services> no arquivo appengine-web.xml.
+
+O seguinte serviço de entrada está disponível:
+
+mail
+Permite ao aplicativo receber e-mails.
+<instance-class>	
+Opcional. Tamanho da classe da instância deste módulo.
+
+As seguintes classes de instância estão disponíveis durante a especificação de diferentes opções de escalonamento:
+
+automatic_scaling
+Ao usar o escalonamento automático, as classes de instância F1, F2, F4, e F4_1G ficam disponíveis.
+Padrão: F1 será atribuído se você não especificar uma classe de instância junto com o elemento automatic_scaling.
+basic_scaling
+Ao usar o escalonamento básico, as classes de instância B1, B2, B4, B4_1G, e B8 ficam disponíveis.
+Padrão: B2 será atribuído se você não especificar uma classe de instância junto com o elemento basic_scaling.
+manual_scaling
+Ao usar o escalonamento manual, as classes de instância B1, B2, B4, B4_1G, e B8 ficam disponíveis.
+Padrão: B2 será atribuído se você não especificar uma classe de instância junto com o elemento manual_scaling.
+Observação: se instance-class estiver definido como F2 ou superior, será possível otimizar as instâncias configurando max-concurrent-requests com um valor acima de 10, que é o padrão. Para encontrar o valor ideal, aumente gradualmente e monitore o desempenho do aplicativo.
+
+<manual-scaling>	
+Opcional. Para uma explicação completa, consulte a seção sobre escalonamento manual.
+
+<precompilation-enabled>	
+Opcional. O App Engine usa um processo de "pré-compilação" com o bytecode Java do aplicativo para melhorar o desempenho dele no Java Runtime Environment. O código pré-compilado funciona de maneira idêntica ao bytecode original.
+
+Se, por algum motivo, você preferir que seu aplicativo não use a pré-compilação, é possível desativá-la adicionando o seguinte ao arquivo appengine-web.xml:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <precompilation-enabled>false</precompilation-enabled>
+  <!-- ... -->
+</appengine-web-app>
+module	
+Observação: os módulos agora são denominados Serviços e os serviços ainda são declarados em arquivos appengine-web.xml como módulos, por exemplo: <module>service_name</module>.
+
+Obrigatório ao criar um serviço. Opcional para o serviço padrão. É necessário que todos os serviços e versões tenham um nome. O nome pode conter números, letras e hifens. Ele não pode ter mais de 63 caracteres, começar ou terminar com um hífen e conter a string "-dot". Escolha um nome exclusivo para cada serviço e versão. Não reutilize nomes de serviços em versões e vice-versa.
+
+Consulte também serviço.
+
+<public-root>	
+Opcional. O <public-root> é um diretório em seu aplicativo que contém os arquivos estáticos dele. Quando uma solicitação para um arquivo estático é feita, o <public-root> do aplicativo é anexado ao caminho da solicitação. Com isso, tem-se o caminho de um arquivo de aplicativo contendo o conteúdo que está sendo solicitado.
+
+o <public-root> padrão é /.
+
+Por exemplo, a solicitação a seguir mapearia o caminho do URL /index.html para o caminho do arquivo do aplicativo /static/index.html:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <public-root>/static</public-root>
+  <!-- ... -->
+</appengine-web-app>
+<resource-files>	
+Opcional. Os arquivos listados no elemento <resource-files> podem ser acessados pelo código do aplicativo usando o sistema de arquivos. Esses arquivos são armazenados nos servidores de aplicativos. O modo como os arquivos estáticos são armazenados e disponibilizados é oposto ao do aplicativo.
+
+O elemento <resource-files> pode conter os seguintes elementos:
+
+<include>
+Um elemento <include> designa os arquivos como arquivos de recursos e está disponível para o código do aplicativo. Esses arquivos só estão disponíveis para o código em regime somente leitura e não para veicular tráfego. Como incluir e excluir arquivos.
+<exclude>
+Arquivos e diretórios correspondentes aos padrões <exclude> não serão enviados nem disponibilizados ao código do aplicativo. No entanto, esses arquivos e diretórios ainda estarão acessíveis ao aplicativo quando ele for executado no servidor de desenvolvimento local. Para mais informações, consulte Como incluir e excluir arquivos.
+
+Exemplo:
+
+
+
+<resource-files>
+  <include path="/**.xml" />
+  <exclude path="/feeds/**.xml" />
+</resource-files>
+Neste exemplo, demonstramos como designar todos os arquivos .xml como arquivos de recursos, exceto os do diretório feeds/ e todos os subdiretórios.
+
+A leitura dos arquivos de recursos do App Engine é realizada com java.io.File ou javax.servlet.ServletContext.getResource/getResourceAsStream. Eles não podem ser acessados via Class.getResourceAsStream().
+
+runtime	
+Para usar o ambiente de execução do Java 8, especifique essa entrada com o valor java8.
+
+Exemplo:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <runtime>java8</runtime>
+  <!-- ... -->
+</appengine-web-app>
+service	
+Os serviços eram anteriormente conhecidos como módulos.
+
+Atualmente, a definição de um serviço como: <service>service_name</service > é compatível apenas com os comandos gcloud app.
+
+service_account	
+Opcional. O elemento service_account permite especificar uma conta de serviço gerenciada pelo usuário como a identidade da versão. A conta de serviço especificada será usada ao acessar outros serviços do Google Cloud e executar tarefas.
+
+Exemplo:
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+ <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+   <!-- ... -->
+   <service-account>[SERVICE_ACCOUNT_NAME]@[PROJECT_ID].iam.gserviceaccount.com</service-account>
+   <!-- ... -->
+ </appengine-web-app>
+<sessions-enabled>	
+Opcional. O App Engine inclui uma implementação das sessões usando a interface de sessão de servlet. A implementação armazena dados da sessão no armazenamento de dados para persistência e também usa Memcache para velocidade. Tal como acontece com a maioria dos outros contêineres de servlet, os atributos de sessão que são definidos com "session.setAttribute()" durante a solicitação persistem no final da solicitação.
+
+Esse recurso é desativado por padrão. Para ativá-lo, adicione o seguinte ao appengine-web.xml:
+
+Exemplo:
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <sessions-enabled>true</sessions-enabled>
+  <!-- ... -->
+</appengine-web-app>
+A implementação cria entidades do Datastore do tipo _ah_SESSION, e entradas do Memcache através das chaves com um prefixo de _ahs. Você pode excluir essas entidades usando o modelo do Dataflow.
+
+Observação: como o App Engine armazena dados de sessão no Datastore e no Memcache, todos os valores armazenados na sessão devem implementar a interface java.io.Serializable.
+
+Consulte o elemento async-session-persistence para reduzir a latência do armazenamento de dados da sessão.
+
+<ssl-enabled>	
+Opcional. Por padrão, qualquer usuário pode acessar qualquer URL usando HTTP ou HTTPS. É possível configurar um aplicativo para exigir HTTPS para determinados URLs no descritor de implantação. Consulte Descritor de implantação: URLs seguros.
+
+Para vetar o uso de HTTPS no aplicativo, insira o seguinte no arquivo appengine-web.xml:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <ssl-enabled>false</ssl-enabled>
+  <!-- ... -->
+</appengine-web-app>
+Não há como proibir HTTPS para alguns caminhos de URL e permitir para outros no Java Runtime Environment.
+
+<static-error-handlers>	
+Opcional. Quando ocorrem alguns erros, o App Engine veicula uma página de erro genérica. Você pode configurar o aplicativo para disponibilizar um arquivo estático personalizado em vez dessas páginas genéricas de erro, contanto que os dados de erro personalizados sejam menores que 10 KB. É possível estabelecer diferentes arquivos estáticos a serem exibidos para cada código de erro suportado especificando os arquivos no arquivo appengine-web.xml do aplicativo. Para exibir páginas de erro personalizadas, adicione uma seção <static-error-handlers> ao seu appengine-web.xml, como no exemplo abaixo:
+
+
+
+
+<static-error-handlers>
+  <handler file="default_error.html" />
+  <handler file="over_quota.html" error-code="over_quota" />
+</static-error-handlers>
+Aviso: certifique-se de que o caminho para o arquivo de resposta de erro não se sobrepõe aos caminhos do gerenciador de arquivos estáticos.
+
+Cada entrada de file indica um arquivo estático que deveria ser exibido no lugar da resposta de erro genérica. O error-code indica qual código de erro deve fazer com que o arquivo associado seja exibido. Estes são os códigos de erro compatíveis:
+
+over_quota
+Indica que o aplicativo ultrapassou a cota de recursos.
+timeout
+Exibido se um prazo for alcançado antes que haja uma resposta do aplicativo.
+O error-code é opcional. Se não for especificado, este arquivo será a resposta de erro padrão do aplicativo.
+
+Há também a opção de especificar mime-type a ser usado ao exibir um erro personalizado. Consulte uma lista completa de tipos MIME.
+
+<static-files>	
+Opcional. O elemento <static-files> especifica padrões que correspondem aos caminhos de arquivo para incluir e excluir da lista de arquivos estáticos, modificando ou alterando o comportamento padrão. O arquivo estático é disponibilizado de servidores dedicados e caches que são separados dos servidores de aplicativos e são úteis para veicular conteúdo estático, como imagens, folhas de estilo CSS ou arquivos JavaScript.
+
+O elemento <static-files> pode conter os seguintes elementos:
+
+<include>
+Um elemento <include> modifica o comportamento padrão de incluir todos os arquivos não JSP. O elemento <include> pode especificar cabeçalhos HTTP a serem usados ao responder à solicitação dos recursos especificados. Para mais informações, consulte Como incluir e excluir arquivos.
+
+É possível substituir a expiração do cache estático padrão especificando o atributo expiration no elemento incluir. O valor é uma string de números e unidades, separados por espaços, em que as unidades podem ser d para dias, h para horas, m para minutos e s para segundos. Por exemplo, "4d 5h" define a expiração do cache para quatro dias e cinco horas após o arquivo ser solicitado pela primeira vez. Para mais informações, consulte, consulte Expiração do cache.
+
+<exclude>
+Arquivos e diretórios correspondentes a padrões <exclude> não serão enviados ao implantar o aplicativo no App Engine. No entanto, esses arquivos e diretórios ainda estarão acessíveis ao aplicativo quando ele for executado no servidor de desenvolvimento local. Para mais informações, consulte Como incluir e excluir arquivos.
+Exemplo
+
+
+
+<static-files>
+  <include path="/my_static-files" >
+    <http-header name="Access-Control-Allow-Origin"
+                 value="http://example.org" />
+  </include>
+</static-files>
+<system-properties>	
+Opcional. O arquivo appengine-web.xml define propriedades do sistema e variáveis do ambiente que são configuradas quando o aplicativo está em execução.
+
+
+
+
+<system-properties>
+  <property name="myapp.maximum-message-length" value="140" />
+  <property name="myapp.notify-every-n-signups" value="1000" />
+  <property name="myapp.notify-url"
+            value="http://www.example.com/signupnotify" />
+</system-properties>
+
+<env-variables>
+  <env-var name="DEFAULT_ENCODING" value="UTF-8" />
+</env-variables>
+<threadsafe>	
+Obrigatório. Quando o elemento threadsafe em appengine-web.xml é false, o App Engine envia solicitações em série para determinado servidor da Web. Quando o valor é true, o App Engine pode enviar várias solicitações em paralelo:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <threadsafe>true</threadsafe>
+  <!-- ... -->
+</appengine-web-app>
+Para usar solicitações simultâneas, o código do aplicativo deverá usar a sincronização de thread adequada antes de ativar threadsafe.
+
+<url-stream-handler>	
+Opcional. Valores possíveis, native ou urlfetch.
+
+O valor padrão é native. Isso significa que as classes de rede Java padrão usam o transporte Java HTTP(S) padrão. Para usar essa configuração, ative o faturamento do seu aplicativo; caso contrário, receberá exceções, que estão documentadas em Solicitações de problemas.
+
+Se você definir url-stream-handler como urlfetch, URL.openConnection e métodos relacionados usarão a busca de URL para o transporte de http e https.
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <url-stream-handler>urlfetch</url-stream-handler>
+  <!-- ... -->
+</appengine-web-app>
+<version>	
+Observação: se você definir a versão usando gcloud app ele modificará o valor version no campo appengine-web.xml.
+O elemento <version> contém o identificador de versão referente à versão mais recente do código do aplicativo. O identificador da versão pode conter letras minúsculas, dígitos e hifens. Ele não pode começar com o prefixo "ah-" e não pode usar os nomes "default" (padrão) e "latest" (mais recente), porque são reservados.
+
+É necessário que os nomes das versões comecem com uma letra, para distingui-las das instâncias numéricas, que são sempre especificadas por um número. Isso evita a ambiguidade com URLs como 123.my-module.uc.r.appspot.com, que podem ser interpretados de duas maneiras: se a versão "123" existir, o destino será a versão "123" do módulo indicado. Se essa versão não existir, o alvo será o número de instância 123 da versão padrão do módulo.
+
+O App Engine usa esse identificador de versão para determinar se é necessário criar uma nova versão do aplicativo com o identificador fornecido (ou substituir a versão do aplicativo pelo identificador fornecido, se já existir). É possível testar novas versões do seu aplicativo com um URL usando" "-dot-" "como um separador de subdomínio no URL, como https://VERSION_ID-dot-default-dot-PROJECT_ID.REGION_ID.r.appspot.com. Por meio do Console do Google Cloud, é possível selecionar a versão padrão do seu aplicativo, que é carregada quando nenhuma versão, ou uma versão inválida, é especificada.
+
+<warmup-requests-enabled>	
+Opcional. Padrão: verdadeiro. As solicitações de aquecimento são ativadas por padrão nos aplicativos em Java 8.
+
+Com as solicitações de aquecimento ativadas, a infraestrutura do Google App Engine emite solicitações `GET` para /_ah/warmup, inicializando <load-on-startup> servlets, ServletContextListeners e servlets de aquecimento personalizado, que permitem inicializar o código do aplicativo conforme necessário. Poderá ser necessário implementar seu próprio manipulador para /_ah/warmup dependendo de qual desses métodos você escolher.
+
+Para desativar solicitações de aquecimento, especifique false para este elemento:
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <!-- ... -->
+  <warmup-requests-enabled>false</warmup-requests-enabled>
+  <!-- ... -->
+</appengine-web-app>
+<vpc-access-connector>	
+Opcional. Configura o aplicativo para usar um conector de acesso VPC sem servidor, permitindo o envio de solicitações para recursos internos na rede VPC. Para mais informações, consulte Como se conectar a uma rede VPC.
+
+name
+Especifique o nome totalmente qualificado do conector de acesso VPC sem servidor:
+
+
+
+projects/PROJECT_ID/locations/REGION/connectors/CONNECTOR_NAME
+egress-setting
+Opcional. O padrão é private-ranges-only. O egress-setting será um destes valores:
+private-ranges-only
+Padrão. As solicitações para endereços IP internos são enviadas pelo conector de acesso VPC sem servidor para a rede VPC conectada. As solicitações para endereços IP externos são enviadas para a Internet pública.
+all-traffic
+Todas as solicitações são enviadas pelo conector de acesso VPC sem servidor para a rede VPC conectada.
+Exemplo
+
+
+
+<vpc-access-connector>
+  <name>projects/PROJECT_ID/locations/REGION/connectors/CONNECTOR_NAME</name>
+  <egress-setting>all-traffic</egress-setting>
+</vpc-access-connector>
+Como escalonar elementos
+A tabela a seguir lista as opções para especificar se o aplicativo precisa ser escalonado.
+
+Para uma comparação dos recursos de desempenho dos tipos de escalonamento, consulte Como escalonar instâncias dinâmicas.
+
+Elemento	Descrição
+<automatic-scaling>	
+Opcional. O escalonamento automático é presumido por padrão com uma classe de instância padrão de F1, a menos que especificado o contrário.
+
+O elemento automatic_scaling define os níveis mínimo e máximo do número de instâncias, latência e conexões simultâneas de um módulo.
+
+É possível que este elemento contenha:
+
+<target-cpu-utilization>
+Opcional. Especifique um valor de 0,5 a 0,95.
+Este parâmetro especifica o limite de uso da CPU em que novas instâncias serão iniciadas para processar o tráfego. Isso oferece um equilíbrio entre desempenho e custo. Valores menores aumentam o desempenho e o custo, e valores maiores os diminuem. Por exemplo, um valor de 0,7 significa que novas instâncias serão iniciadas quando o uso da CPU atingir 70%.
+
+<target-throughput-utilization>
+Opcional. Especifique um valor de 0,5 a 0,95.
+Usado com max-concurrent-requests para especificar quando uma nova instância é iniciada devido a solicitações simultâneas. Quando o número de solicitações simultâneas atinge um valor igual a max-concurrent-requests vezes target-throughput-utilization, o programador inicia uma nova instância.
+
+<max-instances>
+Opcional. O número máximo de instâncias a serem criadas pelo App Engine para esta versão do serviço. Isso é útil para limitar os custos de um módulo. Especifique um valor entre 0 e 2147483647.
+<min-instances>
+Aviso: para que esse recurso funcione corretamente, verifique se as solicitações de aquecimento estão ativadas e se são processadas pelo aplicativo.
+Observação: essa configuração só se aplica se a versão do aplicativo definida por esse arquivo appengine-web.xml estiver configurada para receber tráfego. Para saber mais sobre como rotear tráfego para diferentes versões de um aplicativo, consulte Como dividir o tráfego.
+Opcional. O número mínimo de instâncias a serem criadas pelo App Engine para esta versão do módulo. Essas instâncias disponibilizam o tráfego quando as solicitações chegam e continuam a disponibilizar mesmo quando outras instâncias são iniciadas, conforme necessário, para processar o tráfego.
+Especifique um valor de 0 a 1000. Defina o parâmetro com o valor 0 para que nenhuma instância seja usada quando não houver solicitações. Isso causará uma diminuição nos custos. Você é cobrado pelo número de instâncias especificadas, independentemente de elas receberem tráfego ou não.
+
+<max-concurrent-requests>
+Opcional. O número de solicitações simultâneas que uma instância de escalonamento automático pode aceitar antes do programador gerar uma nova instância (padrão: 10, máximo: 80).
+
+Pode ocorrer aumento da latência da API se esta configuração for muito alta. Talvez o programador gere uma nova instância antes que o número máximo real de solicitações seja atingido.
+
+Observação: se instance-class estiver definido como F2 ou superior, será possível otimizar as instâncias configurando max-concurrent-requests com um valor acima de 10, que é o padrão. Para encontrar o valor ideal, aumente gradualmente e monitore o desempenho do aplicativo.
+
+<max-idle-instances>
+O número máximo de instâncias ociosas que o App Engine precisa manter para esta versão. O valor padrão é "automático". Lembre-se do seguinte:
+
+Com um valor máximo elevado, o número de instâncias ociosas é reduzido gradualmente quando os níveis de carga retornam ao normal após um pico. Isso ajuda o aplicativo a manter um desempenho constante durante as flutuações na carga da solicitação. No entanto, isso também aumenta o número de instâncias ociosas (e os custos de execução consequentes) durante esses períodos de carga intensa.
+Com um valor máximo reduzido, os custos de execução ficam mais baixos. No entanto, isso pode afetar o desempenho devido aos níveis de carga voláteis.
+Observação: ao retornar aos níveis normais após um pico de carga, o número de instâncias ociosas pode exceder temporariamente o máximo especificado. No entanto, você não será cobrado por mais instâncias do que o número máximo especificado.
+
+<max-pending-latency>
+O máximo de tempo que o App Engine permite que uma solicitação aguarde na fila pendente antes que outras instâncias sejam iniciadas para gerenciar solicitações a fim de reduzir a latência pendente.
+
+Com um valor máximo baixo, o App Engine inicia novas instâncias mais cedo para solicitações pendentes, o que melhora o desempenho, mas aumenta os custos de execução.
+Um máximo alto significa que os usuários poderão aguardar mais tempo para que as solicitações sejam veiculadas, se houver solicitações pendentes e nenhuma instância ociosa para veiculá-las, mas a execução do aplicativo custará menos.
+<min-idle-instances>
+O número de instâncias a serem mantidas em execução e prontas para veicular o tráfego. Essa configuração só se aplica à versão que recebe a maior parte do tráfego. Lembre-se:
+
+Com um valor mínimo baixo, os custos de execução são reduzidos durante os períodos ociosos. No entanto, talvez menos instâncias fiquem imediatamente disponíveis para responder a um pico de carga inesperado.
+Com um valor mínimo alto, é possível preparar o aplicativo para picos rápidos na carga de solicitação. O App Engine mantém o número mínimo de instâncias em execução para atender aos pedidos recebidos. Você é cobrado por instâncias, independentemente de estar lidando com solicitações ou não. Para que esse recurso funcione corretamente, verifique se as solicitações de aquecimento estão ativadas e se são processadas pelo seu aplicativo.
+
+Se você definir um número mínimo de instâncias ociosas, a latência pendente terá menos efeito no desempenho do aplicativo. Como o App Engine mantém as instâncias ociosas em reserva, é improvável que as solicitações entrem na fila pendente, exceto em picos de carga excepcionalmente elevados. Para determinar o número ideal de instâncias a serem mantidas em reserva, você precisará testar o aplicativo e o volume de tráfego esperado.
+
+<min-pending-latency>
+A quantidade mínima de tempo que o App Engine permite que uma solicitação aguarde na fila pendente antes que uma nova instância seja iniciada para processá-la. Especifique um valor de 0,01 a 15.
+
+Com um valor mínimo baixo, as solicitações precisam passar menos tempo na fila pendente quando todas as instâncias existentes estão ativas. Isso melhora o desempenho, mas aumenta o custo de execução do aplicativo.
+Com um valor mínimo alto, as solicitações continuarão pendentes por mais tempo se todas as instâncias existentes estiverem ativas. Isso reduz os custos de operação, mas aumenta o tempo que os usuários precisam aguardar para que as solicitações sejam disponibilizadas.
+Exemplo
+
+
+
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <application>simple-app</application>
+  <module>default</module>
+  <version>uno</version>
+  <threadsafe>true</threadsafe>
+  <instance-class>F2</instance-class>
+  <automatic-scaling>
+    <target-cpu-utilization>0.65</target-cpu-utilization>
+    <min-instances>5</min-instances>
+    <max-instances>100</max-instances>
+    <max-concurrent-requests>50</max-concurrent-requests>
+  </automatic-scaling>
+</appengine-web-app>
+<basic-scaling>	
+Opcional. O elemento <basic-scaling> define o número de instâncias de um módulo.
+
+É possível que este elemento contenha:
+
+<idle-timeout>
+Opcional. A instância encerrará esse período depois que receber a última solicitação. O padrão é cinco minutos.
+<max-instances>
+Obrigatório. Número máximo de instâncias que o App Engine cria para esta versão do módulo. Isso é útil para limitar os custos de um módulo.
+Exemplo
+
+
+
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <application>simple-app</application>
+  <module>default</module>
+  <version>uno</version>
+  <threadsafe>true</threadsafe>
+  <instance-class>B8</instance-class>
+  <basic-scaling>
+    <max-instances>11</max-instances>
+    <idle-timeout>10m</idle-timeout>
+  </basic-scaling>
+</appengine-web-app>
+<manual-scaling>	
+Opcional. O elemento <manual-scaling> ativa o escalonamento manual de um módulo e define o número de instâncias de um módulo.
+
+É possível que este elemento contenha:
+
+<instances>
+O número de instâncias a serem atribuídas ao módulo no início.
+Exemplo
+
+
+
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <application>simple-app</application>
+  <module>default</module>
+  <version>uno</version>
+  <threadsafe>true</threadsafe>
+  <instance-class>B8</instance-class>
+  <manual-scaling>
+    <instances>5</instances>
+  </manual-scaling>
+</appengine-web-app>
+Elementos de teste
+Grande parte do trabalho realizado durante uma implantação ocorre localmente em uma etapa de preparação denominada teste, em que arquivos JAR são montados, JSPs são compilados e assim por diante. Se quiser, você pode configurar certas partes do comportamento de teste usando elementos de teste no arquivo de configuração do aplicativo. A maioria dos aplicativos será implementada com sucesso sem a configuração manual do comportamento de teste. Se o aplicativo não for implementado, talvez seja necessário configurar o teste usando as opções mostradas abaixo.
+
+Elemento	Descrição
+<staging>	
+Opcional. A maioria dos aplicativos não precisa alterar o comportamento padrão.
+
+O elemento de teste permite que você especifique uma configuração de teste específica, se necessário, para a implantação.
+
+É possível que este elemento contenha:
+
+<enable-jar-splitting>
+Opcional. Divida grandes arquivos (> 10 megabytes) em fragmentos menores (padrão: verdadeiro).
+
+<jar-splitting-excludes>
+Especifica uma lista separada por vírgulas de sufixos de arquivo. Se enable-jar-splitting estiver ativado, todos os arquivos que corresponderem aos sufixos serão excluídos de todos os JARs.
+
+<disable_jar_jsps>
+Não crie classes jar geradas a partir de JSPs (padrão: falso).
+
+<enable-jar-classes>
+Crie jar do conteúdo de WEB-INF/classes (padrão: falso).
+
+<delete-jsps>
+Exclua os arquivos de origem JSP após a compilação (padrão: verdadeiro).
+
+<compile-encoding>
+Codificação de entrada de arquivos de origem para compilação (padrão: utf-8).
+
+Exemplo:
+
+
+
+        <staging>
+          <delete-jsps>false</delete-jsps>
+        </staging>
+        
+Padrões das opções de teste
+Os padrões das opções de preparo são os seguintes:
+
+Elemento de teste	Valor padrão
+enable-jar-splitting	true
+jar-splitting-excludes	NA
+disable-jar-jsps	false
+enable-jar-classes	true). Isso pode afetar a ordem de carregamento da classe. Portanto, se o aplicativo depender de uma determinada ordem, defina-o como false.
+delete-jsps	true
+compile-encoding	utf-8
+Sintaxe de inclusão e exclusão
+Padrões de caminhos são especificados usando zero ou um número maior de elementos <include> e <exclude>. Em um padrão, '*' representa zero ou um número maior de qualquer caractere no nome de um arquivo ou diretório e ** representa zero ou um número maior de diretórios em um caminho. Os arquivos e diretórios correspondentes aos padrões <exclude> não serão enviados ao implantar o aplicativo no App Engine. No entanto, esses arquivos e diretórios continuarão acessíveis ao aplicativo quando executados no servidor de desenvolvimento local.
+
+Um elemento <include> substitui o comportamento padrão, que é incluir todos os arquivos. Um elemento <exclude> é aplicado depois de todos os padrões <include> (e também o padrão se nenhum explícito <include> for fornecido).
+
+O exemplo a seguir mostra como designar todos os arquivos .png como arquivos estáticos (com exceção dos que estiverem no diretório data/ e todos os seus subdiretórios):
+
+
+
+<static-files>
+  <include path="/**.png" />
+  <exclude path="/data/**.png" />
+</static-files>
+Também é possível definir cabeçalhos HTTP para usar quando for responder às solicitações a esses recursos estáticos.
+
+
+
+<static-files>
+  <include path="/my_static-files" >
+    <http-header name="Access-Control-Allow-Origin"
+                 value="http://example.org" />
+  </include>
+</static-files>
+Observação: se a string path não começa com uma barra, os cabeçalhos HTTP, se houver, funcionam no App Engine, mas não funcionam no servidor de desenvolvimento.
+Tipos MIME para arquivos estáticos
+Por padrão, arquivos estáticos são veiculados com um tipo MIME selecionado com base na extensão do nome do arquivo. Para associar tipos MIME personalizados com extensões de nome de arquivo para arquivos estáticos, use os elementos <mime-mapping> em web.xml. Para mais informações, consulte o wiki de referência sobre web.xml no Metawerx.
+
+Tempo limite de URLFetch
+É possível definir um prazo para cada solicitação URLFetch. Por padrão, o prazo para uma busca é de 5 segundos. É possível alterar esse padrão incluindo a seguinte configuração no arquivo de configuração appengine-web.xml. Especifique o tempo limite em segundos:
+
+
+
+<system-properties>
+    <property name="appengine.api.urlfetch.defaultDeadline" value="10"/>
+</system-properties>
